@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.12;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @notice A Chainlink VRF consumer which uses randomness to mimic the rolling
@@ -20,7 +21,8 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
 
-contract VRFD20 is VRFConsumerBaseV2 {
+contract VRFD20 is VRFConsumerBaseV2, AccessControl {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     uint256 private constant ROLL_IN_PROGRESS = 42;
 
     VRFCoordinatorV2Interface COORDINATOR;
@@ -73,6 +75,8 @@ contract VRFD20 is VRFConsumerBaseV2 {
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         s_owner = msg.sender;
         s_subscriptionId = subscriptionId;
+        // admin role 넣음
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
     /**
@@ -123,12 +127,37 @@ contract VRFD20 is VRFConsumerBaseV2 {
         emit DiceLanded(requestId, d20Value);
     }
 
-    function lottery_in(uint256 number) public {
+    mapping (address => uint256) user;
+    uint256 total_users;
+    uint256 winning_number;
+    uint256 winning_ether;
+    uint256[] cal_users = new uint256[](51);
 
+    function lottery_in(uint256 number) public payable {
+        if(msg.value == 0.01 ether && number <= 50) {
+            user[msg.sender] = number;
+            total_users++;
+            cal_users[number] = cal_users[number] + 1;
+        }else {
+            // transaction fail 시킴
+            revert();
+        }
     }
 
-    function lottery_set(uint256 number) public {
+    function lottery_set() public onlyRole(ADMIN_ROLE) {
+        require(s_results[s_owner] != 0, "Need to roll the dice");
+        winning_number = s_results[s_owner];
+        winning_ether = address(this).balance / cal_users[winning_number];
+    }
 
+    function claim() public {
+        if(user[msg.sender] == winning_number) {
+            address payable to = payable(msg.sender);
+            to.transfer(address(this).balance);
+        }else {
+            // revert도 가스비 날아감
+            revert();
+        }
     }
 
     /**

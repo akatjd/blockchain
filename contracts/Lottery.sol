@@ -52,8 +52,8 @@ contract Lottery is AccessControl {
         if(hasRole(ADMIN_ROLE, msg.sender) || hasRole(MANAGER_ROLE, msg.sender)) {
             winning_number = number;
             // 당첨자끼리 나누는걸로 바꿔야 함
-            winning_ether = address(this).balance / total_users;
-            // winning_ether = address(this).balance / cal_users[number];
+            // winning_ether = address(this).balance / total_users;
+            winning_ether = address(this).balance / cal_users[number];
         }else {
             revert();
         }
