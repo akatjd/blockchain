@@ -123,6 +123,14 @@ contract VRFD20 is VRFConsumerBaseV2 {
         emit DiceLanded(requestId, d20Value);
     }
 
+    function lottery_in(uint256 number) public {
+
+    }
+
+    function lottery_set(uint256 number) public {
+
+    }
+
     /**
      * @notice Get the house assigned to the player once the address has rolled
      * @param player address
